@@ -12,24 +12,25 @@ _PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations
-type New_NameConfigEntry = ConfigEntry[Data]
+type ThebenConfData = ConfigEntry[Config]
 
 
 # TODO Update entry annotation
-async def async_setup_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
     """Set up Theben Conexa Smartmeter gateway from a config entry."""
 
     # TODO 1. Create API instance
     # TODO 2. Validate the API connection (and authentication)
     # TODO 3. Store an API object for your platforms to access
     # entry.runtime_data = MyAPI(...)
-    elD = Data
-    elD.conf1 = 3
+    elD: Config = Config(conf1=4)
 
     entry.runtime_data = elD
 
     if elD.conf1 == 5:
         raise ConfigEntryNotReady("Device is offline")
+
+    # raise ConfigEntryNotReady("Device is effline")
 
     # if entry.conf1 == 6:
     #     raise ex.ConfigEntryError("haaaa")
@@ -40,13 +41,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> 
 
 
 # TODO Update entry annotation
-async def async_unload_entry(hass: HomeAssistant, entry: New_NameConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)
 
 
 @dataclass
-class Data:
+class Config:
     """Data for the Blueprint integration."""
 
     conf1: int
