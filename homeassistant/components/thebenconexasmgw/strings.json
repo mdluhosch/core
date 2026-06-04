@@ -8,8 +8,11 @@
           "password": "[%key:common::config_flow::data::password%]"
         },
         "data_description": {
-          "host": "The IP address of your Smart Meter Gateway"
-        }
+          "host": "The IP provided by your power grid operator",
+          "username": "The username provided by your power grid operator",
+          "password": "The password provided by your power grid operator"
+        },
+        "description": "As a prerequesite you must be able to login to your smartmeter gateway via \"https://'<'IP'>'\"."
       }
     },
     "error": {

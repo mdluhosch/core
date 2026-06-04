@@ -18,8 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST, default="192.168.1.200"): str,
-        # vol.Required(CONF_USERNAME): str,
-        # vol.Required(CONF_PASSWORD): str,
+        vol.Required(CONF_USERNAME): str,
+        vol.Required(CONF_PASSWORD): str,
     }
 )
 
@@ -37,9 +37,6 @@ class PlaceholderHub:
     async def authenticate(self, username: str, password: str) -> bool:
         """Test if we can authenticate with the host."""
         return True
-
-
-# oldHost
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -60,7 +57,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     # oldHost = data[CONF_HOST]
 
-    if not await hub.authenticate("data[CONF_USERNAME]", "data[CONF_PASSWORD]"):
+    if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
         raise InvalidAuth
 
     # If you cannot connect:
@@ -69,7 +66,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # InvalidAuth
 
     # Return info that you want to store in the config entry.
-    return {"title": "Name of the device Dulli"}
+    return {"title": "Dullgateway"}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):

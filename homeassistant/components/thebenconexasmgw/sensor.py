@@ -7,9 +7,11 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import ThebenConfData
+from . import Config, ThebenConfData
+from .const import DOMAIN
 
 
 async def async_setup_entry(
@@ -18,7 +20,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    async_add_entities([ExampleSensor()])
+    async_add_entities([ExampleSensor(entry.runtime_data)])
 
 
 class ExampleSensor(SensorEntity):
@@ -30,6 +32,14 @@ class ExampleSensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_value = 15
+
+    def __init__(self, data: Config):
+        """Initialize metadata."""
+        self._attr_unique_id = f"RoflDieKaty{data.conf1}"
+        data.conf1 += 1
+        self._attr_device_info = DeviceInfo(
+            name="isNichWahr", identifiers={(DOMAIN, data.host)}
+        )
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
