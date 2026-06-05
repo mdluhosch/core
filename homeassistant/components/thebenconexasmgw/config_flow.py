@@ -3,7 +3,11 @@
 import logging
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
+
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from .smgw import ConexaSmgwErr, buildCompleteUrl
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
@@ -24,19 +28,19 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class PlaceholderHub:
-    """Placeholder class to make tests pass.
+# class PlaceholderHub:
+#     """Placeholder class to make tests pass.
 
-    TODO Remove this placeholder class and replace with things from your PyPI package.
-    """
+#     TODO Remove this placeholder class and replace with things from your PyPI package.
+#     """
 
-    def __init__(self, host: str) -> None:
-        """Initialize."""
-        self.host = host
+#     def __init__(self, host: str) -> None:
+#         """Initialize."""
+#         self.host = host
 
-    async def authenticate(self, username: str, password: str) -> bool:
-        """Test if we can authenticate with the host."""
-        return True
+#     async def authenticate(self, username: str, password: str) -> bool:
+#         """Test if we can authenticate with the host."""
+#         return True
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -52,13 +56,24 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
     # )
 
-    hub = PlaceholderHub(data[CONF_HOST])
+    try:
+        m2murl = await buildCompleteUrl(
+            async_get_clientsession(hass),
+            data[CONF_HOST],
+            data[CONF_USERNAME],
+            data[CONF_PASSWORD],
+        )
+        _LOGGER.debug(f"SMGW returned valid query URL {m2murl}")
+    except aiohttp.ClientError:
+        raise CannotConnect from aiohttp.ClientError
+
+    # hub = PlaceholderHub(data[CONF_HOST])
     # if oldHost == data[CONF_HOST]:
 
     # oldHost = data[CONF_HOST]
 
-    if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
-        raise InvalidAuth
+    # if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
+    #     raise InvalidAuth
 
     # If you cannot connect:
     # throw CannotConnect
@@ -66,7 +81,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # InvalidAuth
 
     # Return info that you want to store in the config entry.
-    return {"title": "Dullgateway"}
+    return {"title": "Dullgateway", "m2mUrl": m2murl}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -91,6 +106,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
+                user_input["m2mUrl"] = info["m2mUrl"]
                 return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(

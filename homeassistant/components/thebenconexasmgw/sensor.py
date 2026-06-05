@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import Config, ThebenConfData
+from . import Data, ThebenConfData
 from .const import DOMAIN
 
 
@@ -33,7 +33,7 @@ class ExampleSensor(SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_value = 15
 
-    def __init__(self, data: Config):
+    def __init__(self, data: Data):
         """Initialize metadata."""
         self._attr_unique_id = f"RoflDieKaty{data.conf1}"
         data.conf1 += 1
