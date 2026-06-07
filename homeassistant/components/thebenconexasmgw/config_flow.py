@@ -3,44 +3,28 @@
 import logging
 from typing import Any
 
-import aiohttp
 import voluptuous as vol
-
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from .smgw import ConexaSmgwErr, buildCompleteUrl
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
+from .smgw import ConexaSMGW, checkNetworkConnection
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST, default="192.168.1.200"): str,
+        vol.Required(
+            CONF_HOST, default="192.168.1.200"
+        ): str,  # TODO many electricity grid operators use this IP as default should this integration assume so also?
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
     }
 )
-
-
-# class PlaceholderHub:
-#     """Placeholder class to make tests pass.
-
-#     TODO Remove this placeholder class and replace with things from your PyPI package.
-#     """
-
-#     def __init__(self, host: str) -> None:
-#         """Initialize."""
-#         self.host = host
-
-#     async def authenticate(self, username: str, password: str) -> bool:
-#         """Test if we can authenticate with the host."""
-#         return True
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -48,40 +32,27 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    # TODO validate the data can be used to set up a connection.
-
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
-    # )
 
     try:
-        m2murl = await buildCompleteUrl(
+        # This function tries to establish a TCP connection and raises an exception on error
+        await checkNetworkConnection(async_get_clientsession(hass), data[CONF_HOST])
+    except Exception as e:
+        raise CannotConnect from e
+
+    try:
+        m2murl = await ConexaSMGW.buildCompleteUrl(
             async_get_clientsession(hass),
             data[CONF_HOST],
             data[CONF_USERNAME],
             data[CONF_PASSWORD],
         )
-        _LOGGER.debug(f"SMGW returned valid query URL {m2murl}")
-    except aiohttp.ClientError:
-        raise CannotConnect from aiohttp.ClientError
+        _LOGGER.debug("SMGW returned valid query URL %s", m2murl)
+    except Exception as e:
+        # The smgw unfortunately does not reply with invalid auth it just times out
+        # So after we checked that connection is possible we assume Invalid auth if something happens
+        raise InvalidAuth from e
 
-    # hub = PlaceholderHub(data[CONF_HOST])
-    # if oldHost == data[CONF_HOST]:
-
-    # oldHost = data[CONF_HOST]
-
-    # if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
-    #     raise InvalidAuth
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    return {"title": "Dullgateway", "m2mUrl": m2murl}
+    return {"title": "Smartmeter Gateway", "m2mUrl": m2murl}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -95,7 +66,12 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            self._async_abort_entries_match({CONF_HOST: user_input[CONF_HOST]})
+            self._async_abort_entries_match(
+                {
+                    CONF_HOST: user_input[CONF_HOST],
+                    CONF_USERNAME: user_input[CONF_USERNAME],
+                }
+            )
             try:
                 info = await validate_input(self.hass, user_input)
             except CannotConnect:
