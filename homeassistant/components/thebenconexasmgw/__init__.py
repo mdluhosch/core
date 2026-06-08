@@ -11,7 +11,7 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .coordinator import RuntimeData, SmgwSensorCoordinator
+from .coordinator import RuntimeData, SmgwSensorCoordinator, ThebenConfigEntry
 from .smgw import ConexaSMGW, checkNetworkConnection
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 _PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ThebenConfigEntry) -> bool:
     """Set up Theben Conexa Smartmeter gateway from a config entry."""
 
     try:
@@ -34,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
 
     try:
         # Unfortunately the Conexa 3.0 doesn't provide separate authentication feedback it just ignores all requests with invalid username/password,
-        # That's why here we need to assume it failed because of wrong credentials, as we checked for connectiviy just before and the device was reachable.
+        # That's why here we need to assume it failed because of wrong credentials, as we checked for connectivity just before and the device was reachable.
         entry.runtime_data = RuntimeData(
             api=await ConexaSMGW.create(
                 async_get_clientsession(hass),
@@ -64,6 +64,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ThebenConfData) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ThebenConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)

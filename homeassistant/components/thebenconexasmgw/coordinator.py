@@ -1,9 +1,11 @@
+"""Coordinator for the Theben Conexa Smartmeter gateway integration."""
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.event import (
     async_track_point_in_utc_time,
     async_track_utc_time_change,
@@ -24,13 +26,13 @@ class RuntimeData:
     coordinator: SmgwSensorCoordinator
 
 
-type ThebenConfData = ConfigEntry[RuntimeData]
+type ThebenConfigEntry = ConfigEntry[RuntimeData]
 
 
 class SmgwSensorCoordinator(DataUpdateCoordinator):
     """The data update coordinator for the Theben Conexa Smartmeter gateway integration."""
 
-    def __init__(self, hass: HomeAssistant, entry: ThebenConfData) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ThebenConfigEntry) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
@@ -50,13 +52,16 @@ class SmgwSensorCoordinator(DataUpdateCoordinator):
             minute=["0", "15", "30", "45"],
             second=40,
         )
-        self._unscheduled_updates = None
+        self._unscheduled_updates: CALLBACK_TYPE | None = None
         self.retries = 0
 
     async def _async_update_data(self) -> dict:
         """Fetch data from API endpoint."""
         # If data is None, this is the first refresh cycle
         is_first_update = self.data is None
+
+        if self.config_entry is None or self.config_entry.runtime_data is None:
+            raise ValueError("Runtime data is not set")
 
         _LOGGER.debug("Fetching data from API")
         vals = await self.config_entry.runtime_data.api.getLatestValues()
@@ -67,9 +72,13 @@ class SmgwSensorCoordinator(DataUpdateCoordinator):
         # If the smgw was busy and returned old data we try to reschedule in 60 seconds from now 2 times
         # before giving up and accepting the old data, to avoid spamming the smgw with requests.
         if not is_first_update:
-            age = (
-                now_utc - dt_util.parse_datetime(next(iter(vals.values())).utcTimestamp)
-            ).total_seconds()
+            meter_timestamp: str = next(iter(vals.values())).utcTimestamp
+            meter_datetime = dt_util.parse_datetime(meter_timestamp)
+            if meter_datetime is None:
+                raise ValueError(
+                    f"Could not parse meter timestamp: {meter_timestamp!r}"
+                )
+            age = (now_utc - meter_datetime).total_seconds()
             _LOGGER.debug("Data age in seconds: %s", age)
 
             if age > 100 and self.retries < 2:

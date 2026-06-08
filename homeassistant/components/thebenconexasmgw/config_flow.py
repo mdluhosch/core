@@ -20,7 +20,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(
             CONF_HOST, default="192.168.1.200"
-        ): str,  # TODO many electricity grid operators use this IP as default should this integration assume so also?
+        ): str,  # TODO many electricity grid operators use this IP as default should this integration assume so also? pylint: disable=fixme
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
     }
@@ -55,7 +55,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": "Smartmeter Gateway", "m2mUrl": m2murl}
 
 
-class ConfigFlow(ConfigFlow, domain=DOMAIN):
+class ThebenConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Theben Conexa Smartmeter gateway."""
 
     VERSION = 1
